@@ -32,19 +32,22 @@ class SimplePCAModel(BaseRatesModel):
 
         maturities = self.params['maturities']
 
-        dW = np.random.randn(num_periods, num_factors) * dt
+        dW = np.random.randn(num_periods, num_factors) * np.sqrt(dt)
 
         # increments of PCA factors
         dX = sigma * dW
 
         # increments of zero rates
-        dZ = U.dot(dX)
+        dZ = U.dot(dX.T)
 
         starting_rates = start_curve.zero_rate(maturities)
 
         all_rates = np.concatenate(starting_rates, dZ.T).cumsum()[1:, :]
 
         return [ZeroCurve(maturities, rates) for rates in all_rates]
+
+    def create_new(self):
+        pass
 
 
 
