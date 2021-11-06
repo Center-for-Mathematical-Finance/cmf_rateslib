@@ -3,9 +3,12 @@
 class BaseProduct(object):
 
     params: dict = {}
-    name: str
 
-    # TODO:
-    def get_cashflow(self):
+    def __init__(self):
         pass
 
+    def get_cashflows(self, *args, **kwargs):
+        return None
+
+    def pv(self, *args, **kwargs):
+        return 0
