@@ -1,4 +1,5 @@
 
+from ..curves.zero_curve import ZeroCurve
 
 class BaseRatesModel(object):
 
@@ -9,6 +10,10 @@ class BaseRatesModel(object):
 
     def generate_zero_curves(self, **kwargs):
         raise NotImplementedError()
+
+    def evolve_zero_curve(self, start_curve: ZeroCurve, num_periods: int, dt: float):
+        raise NotImplementedError()
+
 
 
 
