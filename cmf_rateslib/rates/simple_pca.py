@@ -46,6 +46,9 @@ class SimplePCAModel(BaseRatesModel):
 
         return [ZeroCurve(maturities, rates) for rates in all_rates]
 
+    def myfunction(self):
+        pass
+
 
 
 
