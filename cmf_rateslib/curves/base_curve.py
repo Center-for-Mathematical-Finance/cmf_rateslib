@@ -1,22 +1,39 @@
 import datetime
+import numpy as np
 
 
-class BaseCurve(object):
+class BaseZeroCurve(object):
 
-    ccy: str
-    curve_type: str
-    interp_method: str
-    asof: datetime.datetime
+    _maturities: np.ndarray
+    _rates: np.ndarray
 
-    def df(self, expiry: float) -> float:
-        raise NotImplementedError()
+    def __init__(self, maturities, rates):
+        if len(maturities) != len(rates):
+            raise ValueError("maturities and rates must be os the same length")
 
-    def zero_rate(self, expiry: float, freq=None):
-        raise NotImplementedError()
+        self._maturities = np.array(maturities)
+        self._rates = np.array(rates)
 
-    def fwd_rate(self, expiry: float, tenor: float, freq=None):
-        raise NotImplementedError()
+    def df(self, expiry):
+        return np.exp(- self.zero_rate(expiry) * expiry)
 
-    # TODO:
-    def bump(self):
-        raise NotImplementedError()
+    def zero_rate(self, expiry):
+        return np.interp(expiry, self._maturities, self._rates)
+    
+    def fwd_rate(self, expiry: float, tenor: float):
+        return -np.log((self.df(expiry)/self.df(expiry + tenor))) / tenor
+
+    def bump(self, shift):
+        return BaseZeroCurve(self._maturities, self._rates + shift)
+
+    def __add__(self, other):
+        if isinstance(other, BaseZeroCurve):
+            return BaseZeroCurve(self._maturities, self._rates + other.zero_rate(self._maturities))
+        else:
+            raise TypeError("'other' must be an instance of a BaseZeroCurve")
+
+    def __sub__(self, other):
+        if isinstance(other, BaseZeroCurve):
+            return BaseZeroCurve(self._maturities, self._rates - other.zero_rate(self._maturities))
+        else:
+            raise TypeError("'other' must be an instance of a BaseZeroCurve")
