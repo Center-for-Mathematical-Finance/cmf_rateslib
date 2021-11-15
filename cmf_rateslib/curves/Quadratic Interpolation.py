@@ -32,7 +32,7 @@ for date in dates:
 
 print(int_rates)
 
-# сравним с встроенной интерполяцией
+# сравним со встроенной интерполяцией
 f = interpolate.interp1d(maturities, rates, kind='quadratic')
 pyth_int_rates = f(dates)
 
