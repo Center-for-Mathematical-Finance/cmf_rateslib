@@ -4,9 +4,9 @@ from ..curves.zero_curve import ZeroCurve
 import numpy as np
 
 
-class SimplePCAModel(BaseRatesModel):
+class MeanRevertingPCAModel(BaseRatesModel):
 
-    def __init__(self, maturities, maturity_loadings, factor_vols):
+    def __init__(self, maturities, maturity_loadings, factor_vols, theta_vol):
         super().__init__()
 
         maturities = np.array(maturities)
@@ -23,19 +23,26 @@ class SimplePCAModel(BaseRatesModel):
         self.params['loadings'] = maturity_loadings
         self.params['num_factors'] = maturity_loadings.shape[1]
         self.params['factor_vols'] = factor_vols
+        self.params['theta_vol'] = theta_vol
 
-    def evolve_zero_curve(self, start_curve: ZeroCurve, num_periods: int, dt: float):
+    def evolve_zero_curve(self, X, start_curve: ZeroCurve, num_periods: int, dt: float):
 
         U = self.params['loadings']
         num_factors = self.params['num_factors']
         sigma = self.params['factor_vols']
+        theta_vol = self.params['theta_vol']
+
 
         maturities = self.params['maturities']
 
         dW = np.random.randn(num_periods, num_factors) * np.sqrt(dt) # 5x3
+        dX = []
 
-        # increments of PCA factors
-        dX = sigma * dW 
+        for delta in dW:
+            dX.append((np.random.randn(num_factors) * theta_vol - X) * dt + sigma * delta)
+            X += dX[-1]
+
+        dX = np.array(dX)
 
         # increments of zero rates
         dZ = U.dot(dX.T) #4x3 3x5 -> 4x5
