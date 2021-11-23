@@ -11,8 +11,10 @@ class BaseZeroCurve(object):
         if len(maturities) != len(rates):
             raise ValueError("maturities and rates must be os the same length")
 
-        self._maturities = np.array(maturities)
-        self._rates = np.array(rates)
+        maturities = np.array(maturities) #for maturities to be sorted ascending
+        sorted_args = maturities.argsort()
+        self._maturities = maturities[sorted_args]
+        self._rates = np.array(rates)[sorted_args]
 
     def df(self, expiry):
         return np.exp(- self.zero_rate(expiry) * expiry)
