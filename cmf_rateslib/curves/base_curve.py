@@ -20,8 +20,12 @@ class BaseZeroCurve(object):
     def zero_rate(self, expiry):
         return np.interp(expiry, self._maturities, self._rates)
     
-    def fwd_rate(self, expiry: float, tenor: float):
-        return -np.log((self.df(expiry)/self.df(expiry + tenor))) / tenor
+    def fwd_rate(self, expiry: float, tenor: float, n=None):
+        fwd_rate = -np.log((self.df(expiry)/self.df(expiry + tenor))) / tenor
+        if n:
+            return n * (np.exp(fwd_rate/n) - 1)
+        else:
+            return fwd_rate
 
     def bump(self, shift):
         return BaseZeroCurve(self._maturities, self._rates + shift)
