@@ -2,6 +2,14 @@ from cmf_rateslib.curves.base_curve import BaseZeroCurve
 import numpy as np
 
 
+def zero_rate_from_df(df, expiry):
+    return - np.log(df) / expiry
+
+
+def zero_rate_from_forward(fwd, expiry, tenor):
+    return
+
+
 def quad_interp(expiry, maturities, rates):
     x = maturities
     y = rates
@@ -26,24 +34,25 @@ class ZeroCurve(BaseZeroCurve):
     def interpolation(self, expiry, interp_type, tenor=None):
         interp_types = (['lin_zero_rate', 'lin_log_df', 'lin_fwd_rate', 'quad_zero_rate',
                          'quad_log_df', 'quad_fwd_rate'])
+        forward_rate = self.fwd_rate(expiry, tenor)
+        log_df = - self._maturities * self._rates
+
         if interp_type not in interp_types:
             raise ValueError('Unknown interpolation type')
         if interp_type == 'lin_zero_rate':
             return self.zero_rate(expiry)
         elif interp_type == 'lin_log_df':
-            log_df = - self._maturities * self._rates
             log_df_interp = np.interp(expiry, self._maturities, log_df)
             return log_df_interp / expiry
-        # elif interp_type == 'lin_fwd_rate':
-        #     forward_rate = self.fwd_rate(expiry, tenor)
-        #     forward_rate_interp = np.interp(expiry, self._maturities, forward_rate)
-        #     return
+        elif interp_type == 'lin_fwd_rate':
+            forward_rate_interp = np.interp(expiry, self._maturities, forward_rate)
+            return forward_rate_interp
         elif interp_type == 'quad_zero_rate':
             return quad_interp(expiry, self._maturities, self._rates)
         elif interp_type == 'quad_log_df':
-            log_df = - self._maturities * self._rates
             log_df_interp = quad_interp(expiry, self._maturities, log_df)
             return log_df_interp / expiry
-        # elif type == 'quad_fwd_rate':
-        #     return (-np.log((np.exp(- quad_interp(expiry, self._maturities, self._rates) * expiry)
-        #                      / np.exp(- quad_interp(expiry + tenor, self._maturities, self._rates) * (expiry + tenor)))) / tenor)
+        elif type == 'quad_fwd_rate':
+            forward_rate_interp = quad_interp(expiry, self._maturities, forward_rate)
+            return forward_rate_interp
+
