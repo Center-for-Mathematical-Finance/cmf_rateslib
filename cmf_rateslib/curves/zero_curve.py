@@ -7,7 +7,7 @@ def zero_rate_from_df(df, expiry):
 
 
 def zero_rate_from_forward(fwd, expiry, tenor):
-    return
+    return None
 
 
 def quad_interp(expiry, maturities, rates):
