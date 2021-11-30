@@ -2,16 +2,22 @@
 from ..rates.base_model import BaseRatesModel
 from ..curves.zero_curve import ZeroCurve
 import numpy as np
+import scipy as sp
+import pandas as pd
 
 
 class SimplePCAModel(BaseRatesModel):
 
-    def __init__(self, maturities, maturity_loadings, factor_vols):
+    def __init__(self, maturities, maturity_loadings, factor_vols,real_rates:pd.DataFrame=None,):
         super().__init__()
 
-        maturities = np.array(maturities)
-        maturity_loadings = np.array(maturity_loadings)
-        factor_vols = np.array(factor_vols)
+        if maturity_loadings is None or factor_vols is None:
+            maturity_loadings = self.create_pca(real_rates)[0]
+            factor_vols = self.create_pca(real_rates)[1]
+        else:
+            maturities = np.array(maturities)
+            maturity_loadings = np.array(maturity_loadings)
+            factor_vols = np.array(factor_vols)
 
         if maturities.shape[0] != maturity_loadings.shape[0]:
             raise ValueError("Shapes of maturities and maturity_loandings don't match")
@@ -23,6 +29,15 @@ class SimplePCAModel(BaseRatesModel):
         self.params['loadings'] = maturity_loadings
         self.params['num_factors'] = maturity_loadings.shape[1]
         self.params['factor_vols'] = factor_vols
+
+    @staticmethod
+    def create_pca(real_rates: pd.DataFrame, number_pca: int = 3):
+        real_rates -= real_rates.mean(axis=0)
+        covariance_matrix = np.cov(real_rates, rowvar=False)
+        eigenvals, eigenvecs = sp.linalg.eigh(covariance_matrix)
+        eigenvecs = eigenvecs[:, np.argsort(eigenvals)[::-1]]
+        eigenvecs = eigenvecs[:, :number_pca]
+        return eigenvecs, np.std(eigenvecs, axis=1)
 
     def evolve_zero_curve(self, start_curve: ZeroCurve, num_periods: int, dt: float):
 
@@ -42,13 +57,9 @@ class SimplePCAModel(BaseRatesModel):
 
         starting_rates = start_curve.zero_rate(maturities)
 
-        all_rates = np.concatenate(starting_rates, dZ.T).cumsum()[1:, :]
+        all_rates = np.concatenate((starting_rates.reshape(1, starting_rates.shape[0]), dZ.T), axis=0).cumsum(axis=0)[1:, :]
 
         return [ZeroCurve(maturities, rates) for rates in all_rates]
 
-    def create_new(self):
-        pass
-
-
-
-
+    def create_new(self, curves_num: int):
+       pass
