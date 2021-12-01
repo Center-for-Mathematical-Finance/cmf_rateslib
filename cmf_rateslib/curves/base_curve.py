@@ -11,7 +11,7 @@ class BaseZeroCurve(object):
 
     def __init__(self, maturities, rates, interp_method='L_R', rate_100yr=0.05):
         if len(maturities) != len(rates):
-            raise ValueError("maturities and rates must be os the same length")
+            raise ValueError("maturities and rates must be of the same length")
 
         self._maturities = np.array(maturities.append(100.0))
         self._rates = np.array(rates.append(rate_100yr))
