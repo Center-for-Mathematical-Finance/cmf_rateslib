@@ -16,6 +16,7 @@ class BaseZeroCurve(object):
         self._maturities = np.array(maturities.append(100.0))
         self._rates = np.array(rates.append(rate_100yr))
         self._interp_method = interp_method.split('-')
+        self._interp_method_name = interp_method
 
         self.tenor_to_periods = {'3M': 0.25, '6M': 0.5, '1Y': 1.0}
         self.interp_type = {'L': 'linear', 'Q': 'quadratic'}
@@ -141,26 +142,32 @@ class BaseZeroCurve(object):
             return self.compute_rates(expiry, self.tenor_to_periods[self._interp_method[2]], params)
 
     def create_from_existing_curve(self, interp_method):
-        return ZeroCurve(self._maturities, self._rates, interp_method)
+        return BaseZeroCurve(self._maturities, self._rates, interp_method)
 
     def bump(self, shift, exposure, type='parallel', standpoint=None):
         if type == 'parallel' or (type == 'all' and len(shift) == len(self._maturities)):
-            return BaseZeroCurve(self._maturities, self._rates + shift)
+            return BaseZeroCurve(self._maturities, self._rates + shift, self._interp_method_name)
         elif type == 'linear':
             if standpoint is None:
                 standpoint = np.median(self._maturities)
-            return BaseZeroCurve(self._maturities, self._rates + shift + exposure * (self._maturities - standpoint))
+            return BaseZeroCurve(self._maturities,
+                                 self._rates + shift + exposure * (self._maturities - standpoint),
+                                 self._interp_method_name)
         else:
             raise ArgumentError('False Parameters!')
 
     def __add__(self, other):
         if isinstance(other, BaseZeroCurve):
-            return BaseZeroCurve(self._maturities, self._rates + other.zero_rate(self._maturities))
+            return BaseZeroCurve(self._maturities,
+                                 self._rates + other.zero_rate(self._maturities),
+                                 self._interp_method_name)
         else:
             raise TypeError("'other' must be an instance of a BaseZeroCurve")
 
     def __sub__(self, other):
         if isinstance(other, BaseZeroCurve):
-            return BaseZeroCurve(self._maturities, self._rates - other.zero_rate(self._maturities))
+            return BaseZeroCurve(self._maturities,
+                                 self._rates - other.zero_rate(self._maturities),
+                                 self._interp_method_name)
         else:
             raise TypeError("'other' must be an instance of a BaseZeroCurve")
