@@ -18,8 +18,8 @@ class BaseZeroCurve(object):
         self._interp_method = interp_method.split('-')
 
         if self._maturities[0] != 0:
-            self._maturities = np.insert(self._maturities, 0.0, 0.0)
-            self._rates = np.insert(self._rates, 0.0, 0.0)
+            self._maturities = np.insert(self._maturities, 0, 0.0)
+            self._rates = np.insert(self._rates, 0, 0.0)
 
         self._discounts_cont = self.df(maturities)
         self._forward_start = maturities[:-1]
@@ -56,7 +56,7 @@ class BaseZeroCurve(object):
             return forward_rate
         return m * (np.exp(forward_rate / m) - 1)
 
-    def interpolate(self, expiry: List):
+    def interpolate(self, expiry: list):
 
         if self._interp_method[1] == 'R':
             return self.result(expiry)

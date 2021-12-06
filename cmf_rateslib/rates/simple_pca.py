@@ -40,11 +40,51 @@ class SimplePCAModel(BaseRatesModel):
         # increments of zero rates
         dZ = U.dot(dX.T)
 
+        interp_method = '-'.join(start_curve._interp_method) # delete?
+
         starting_rates = start_curve.zero_rate(maturities)
 
-        all_rates = np.concatenate(starting_rates, dZ.T).cumsum()[1:, :]
+        all_rates = np.cumsum(np.concatenate([np.array([starting_rates]), dZ.T]), axis = 0)[1:, :]
 
-        return [ZeroCurve(maturities, rates) for rates in all_rates]
+        return [ZeroCurve(maturities, rates, interp_method) for rates in all_rates]
+
+
+    def fit(self, existing_curves: list, new_maturities: list):
+        """
+        Function for fitting Simple PCA Model
+
+        Args
+        ----
+        existing_curves: list, required
+            A list of BaseZeroCurve objects
+        new_maturities: list required
+            A list of new maturities which will be used to compose Z matrix of zero-rates
+
+        Returns
+        -------
+        U: np.array
+            Loadings matrix of size (len(new_maturities),self.params['num_factors']) 
+        vols: np.array
+            Volatility factors, an array of size (,self.params['num_factors'])
+
+        """
+        
+        Z = np.array([curve.zero_rate(np.array(new_maturities)) for curve in existing_curves]) 
+        # get zero rates at new maturities for each curve
+        # rows - existing_curves
+        # columns - new_maturities
+        
+        dZ = np.diff(Z, n=1, axis=0) # get zero rates increments
+        C = np.dot(dZ.T,dZ) # compute covariance matrix
+
+        eigenvalues, eigenvectors = np.linalg.eig(C) # get eigenvalues and eigenvectors
+        largest_eigenvalues_indices = np.argsort(-eigenvalues) # get the indices of eigenvalues from largest to smallest
+        vols = np.sqrt(eigenvalues[largest_eigenvalues_indices][:self.params['num_factors']]) # take top-n largest eigenvalues
+        U = eigenvectors[:,largest_eigenvalues_indices][:,:self.params['num_factors']] # take their eigenvectors
+
+        return U, vols
+
+
 
     def create_new(self):
         pass
