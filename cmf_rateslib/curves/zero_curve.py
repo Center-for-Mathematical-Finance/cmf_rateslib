@@ -96,10 +96,11 @@ class ZeroCurve(BaseZeroCurve):
     
     def __init__(self, maturities, rates, **kwarg):
         super().__init__(maturities, rates)
-        if kwarg.get('df_for_quadratic') is None:
-            kwarg['df_for_quadratic'] = 1
+        #if kwarg.get('df_for_quadratic') is None:
+        #    kwarg['df_for_quadratic'] = 1
         self.quadratic_interpolator = Interpolation2Pow(maturities, rates ,kwarg['df_for_quadratic'])
         self.linear_interpolation = InterpolationLinear(maturities, rates)
+        self.log_interpolator = InterpolationLinear(maturities, np.log(np.array(rates)))
     
     def interpolate(self, mode, power, expirity, tenor = None):
         if power not in [1, 2]:
@@ -123,4 +124,40 @@ class ZeroCurve(BaseZeroCurve):
                 return -np.log((np.exp(- self.linear_interpolation(expirity) * expiry)/np.exp(- self.linear_interpolation(expirity+tenor) * (expiry+tenor)))) / tenor
             elif power == 2:
                 return -np.log((np.exp(- self.quadratic_interpolator(expirity) * expiry)/np.exp(- self.quadratic_interpolator(expirity+tenor) * (expiry+tenor)))) / tenor
+            
+    def df(self, expiry, mode = 'continuouse', p = 1, m = 1):
+        assert mode in ['continuouse', 'discrete']
+        if mode == 'continuouse':
+            return np.exp(- self.zero_rate(expiry) * expiry)
+        else:
+            assert int(m) == m
+            return p*(1+(self.zero_rate(expiry)/m))**(expirity*m)
 
+    def fwd_rate(self, expiry, tenor, mode = 'continuouse'):
+        assert mode in ['continuouse', 'discrete']
+        if mode == 'continuouse':
+            return -np.log((self.df(expiry, mode)/self.df(expiry + tenor, mode))) / tenor
+        else:
+            return 1/(expirity - tenor) * (self.df(tenor, mode)/self.df(expirity, mode) - 1)
+        
+    def roll(self, roll_time, mode = 'continuouse'):
+        assert mode in ['continuouse', 'discrete']
+        roll_rates = list()
+        for maturity in self._maturities:
+            roll_rates.append(self.fwd_rate(roll_time, maturity))
+        return ZeroCurve(self._maturities, new_rates)
+    
+    def interpolate(self, expirities, power = 2, start_pow2 = 1):
+        assert power in [1, 2, 'log']
+        res = []
+        if power == 2:
+            for el in expirities:
+                res.append(self.quadratic_interpolator(el))
+        elif power == 1:
+            for el in expirities:
+                res.append(self.linear_interpolation(el))
+        else:
+            for el in expirities:
+                res.append(self.log_interpolator(el))
+        return res
+            

@@ -16,11 +16,6 @@ class BaseZeroCurve(object):
 
     def df(self, expiry):
         return np.exp(- self.zero_rate(expiry) * expiry)
-    
-    def df_discrete(self, expirity, p = 1, m = 1):
-        assert m >= 1
-        assert int(m) == m
-        return p*(1+(self.zero_rate(expiry)/m))**(expirity*m)
 
     def zero_rate(self, expiry):
         return np.interp(expiry, self._maturities, self._rates)
