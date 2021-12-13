@@ -1,7 +1,7 @@
-
 from ..rates.base_model import BaseRatesModel
 from ..curves.zero_curve import ZeroCurve
 import numpy as np
+import typing
 
 
 class SimplePCAModel(BaseRatesModel):
@@ -25,11 +25,12 @@ class SimplePCAModel(BaseRatesModel):
         self.params['factor_vols'] = factor_vols
 
     def evolve_zero_curve(self, start_curve: ZeroCurve, num_periods: int, dt: float):
-
+        """ 
+            Evolve given zero curve using loadings and simple PCA method.
+        """ 
         U = self.params['loadings']
         num_factors = self.params['num_factors']
         sigma = self.params['factor_vols']
-
         maturities = self.params['maturities']
 
         dW = np.random.randn(num_periods, num_factors) * np.sqrt(dt)
@@ -46,9 +47,38 @@ class SimplePCAModel(BaseRatesModel):
 
         return [ZeroCurve(maturities, rates) for rates in all_rates]
 
-    def create_new(self):
-        pass
+    def create_new(self, n_curves:int, dt:float):
+        """ 
+            Generate n zero curves using loadings and simple PCA method.
+        """ 
+        U = self.params['loadings']
+        num_factors = self.params['num_factors']
+        sigma = self.params['factor_vols']
+        maturities = self.params['maturities']
 
+        dW = np.random.randn(n_curves, num_factors) * np.sqrt(dt)
 
+        # increments of PCA factors
+        dX = sigma * dW
 
+        # increments of zero rates
+        dZ = U.dot(dX.T)
 
+        all_rates = dZ.T
+
+        return [ZeroCurve(maturities, rates) for rates in all_rates]
+
+    def fit(self, curve_list:list, n_components:int=0):
+        """ 
+            For given list of curves fit U and vol
+        """ 
+        rate_matrix = np.array([curve._rates for curve in curve_list])
+        cov = np.cov(rate_matrix)
+        vol, u = np.linalg.eig(cov)
+        if (n_components == 0):
+            n_components = self.params["num_factors"]
+    	ind = np.arsort(vol)[::-1]
+    	vols = vols[ind][:n_components]
+    	u = u[:, ind][:, n_components]
+
+        return u, np.sqrt(vol) 
