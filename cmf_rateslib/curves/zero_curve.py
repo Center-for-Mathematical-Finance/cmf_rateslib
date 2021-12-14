@@ -33,16 +33,16 @@ class ZeroCurve(BaseZeroCurve):
         return ZeroCurve(self._maturities,self.rates,interpolation_mode,self._compounding_mode,self._annual_number_of_compounds)
 
 
-    def df(self, expiry):
+    def df(self, expiry,pow=1):
         if(self._compounding_mode=='continuous'):
-            return np.exp(- self.zero_rate(expiry) * expiry)
+            return np.exp(- self.interpolate(expiry,pow) * expiry)
         else:
             return (1+self.zero_rate(expiry)/self._annual_number_of_compounds)**(-np.floor(self._annual_number_of_compounds*expiry))
 
-    def fwd_rate(self, expiry,tenor):
+    def fwd_rate(self, expiry,tenor,pow=1):
 
         if (self._compounding_mode == 'continuous'):
-            return np.log((self.df(expiry)/self.df(expiry + tenor))) / tenor
+            return np.log((self.df(expiry,pow)/self.df(expiry + tenor,pow))) / tenor
         else:
             return (self.df(expiry)/self.df(expiry+tenor))**tenor - 1
 
@@ -53,7 +53,7 @@ class ZeroCurve(BaseZeroCurve):
         return ZeroCurve(self._maturities,new_rates,self._interpolation_mode, self._compounding_mode, self._annual_number_of_compounds)
 
     def bump_pca(self,historical_curves,bumped_values,bumped_positions):
-        cov_mtx = np.cov(historical_curves)
+        cov_mtx = np.cov(np.concatenate([historical_curves,self._rates[:,np.newaxis]],axis=1))
         L, U = np.linalg.eig(cov_mtx)
         L = np.diag(L)
         V = U @ sqrtm(L)
@@ -66,7 +66,7 @@ class ZeroCurve(BaseZeroCurve):
         A = np.concatenate([np.concatenate([I, V_]), np.concatenate([V_.T, O])], axis=1)
 
         b = np.zeros(p_num)
-        b = np.concatenate([b, bumped_values])
+        b = np.concatenate([b, self._rates[bumped_positions]+bumped_values])
         x = np.linalg.solve(A, b)
 
         p = x[:5]
@@ -98,7 +98,7 @@ class ZeroCurve(BaseZeroCurve):
             if(self._interpolation_mode=='zero_rate'):
                 return self.zero_rate(expiries)
             if(self._interpolation_mode=='log_df'):
-                return np.exp(np.interp(expiries, self._maturities, np.log(self._rates)))
+                return np.interp(expiries, self._maturities, -self._rates*self._maturities)/(-expiries)
             if(self._interpolation_mode=='forward_rate_3month'):
                 pass
 
@@ -117,13 +117,13 @@ class ZeroCurve(BaseZeroCurve):
                 return np.array(out_rates)
 
             if (self._interpolation_mode == 'log_df'):
-                a, b, c = self._get_spline_coeffs(self._maturities, np.log(self._rates))
+                a, b, c = self._get_spline_coeffs(self._maturities, -self._rates*self._maturities)
 
                 for i in range(len(expiries)):
                     n=0
                     while (self._maturities[n] < expiries[i]):
                         n = n + 1
-                    out_rates.append(np.exp((a[n - 1] + b[n - 1] * expiries[i] + c[n - 1] * expiries[i] ** 2)))
+                    out_rates.append(((a[n - 1] + b[n - 1] * expiries[i] + c[n - 1] * expiries[i] ** 2))/(-expiries[i]))
 
                 return np.array(out_rates)
 
