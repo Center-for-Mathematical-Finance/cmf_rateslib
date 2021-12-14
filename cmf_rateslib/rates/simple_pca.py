@@ -1,6 +1,6 @@
 
-from ..rates.base_model import BaseRatesModel
-from ..curves.zero_curve import ZeroCurve
+from ..rates.base__model import BaseRatesModel
+from ..curves.zero__curve import ZeroCurve
 import numpy as np
 
 
@@ -24,7 +24,7 @@ class SimplePCAModel(BaseRatesModel):
         self.params['num_factors'] = maturity_loadings.shape[1]
         self.params['factor_vols'] = factor_vols
 
-    def evolve_zero_curve(self, start_curve: ZeroCurve, num_periods: int, dt: float):
+    def evolve_zero__curve(self, start__curve: ZeroCurve, num_periods: int, dt: float):
 
         U = self.params['loadings']
         num_factors = self.params['num_factors']
@@ -40,7 +40,7 @@ class SimplePCAModel(BaseRatesModel):
         # increments of zero rates
         dZ = U.dot(dX.T)
 
-        starting_rates = start_curve.zero_rate(maturities)
+        starting_rates = start__curve.zero_rate(maturities)
 
         all_rates = np.concatenate(starting_rates, dZ.T).cumsum()[1:, :]
 
