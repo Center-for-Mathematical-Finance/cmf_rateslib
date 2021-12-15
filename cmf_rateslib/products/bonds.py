@@ -19,4 +19,13 @@ class ZCBond(BaseProduct):
 
 
 class CouponBond(BaseProduct):
-    pass
+
+    _expiry: float
+    _coupon: float
+    _freq: float
+
+    def __init__(self, expiry: float, coupon: float, freq: int):
+        super().__init__()
+        self._expiry = expiry
+        self._coupon = coupon
+        self._freq = freq

@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from ..curves.base_curve import BaseZeroCurve
+from ..products.bonds import CouponBond
 
 
 class ZeroCurve(BaseZeroCurve):
@@ -51,3 +52,22 @@ class ZeroCurve(BaseZeroCurve):
     def plot(self):
         plt.plot(self._maturities, self._rates)
         plt.show()
+
+    def bootstrap_bond(self, bond: CouponBond, rate: float):
+        maturities = []
+        rates = []
+        t = int(bond._expiry*bond._freq*12)
+        for i in range(t):
+            maturities.append(i/12)
+        rates.append(rate)
+        for i in range(1, len(maturities)):
+            P = 0
+            for k in range(i):
+                P += bond._coupon / (1 + maturities[i-1] / bond._freq) ** bond._freq / bond._freq
+            rates.append(bond._freq * (((bond._coupon / bond._freq + 100) / (100 - P)) ** (1/bond._freq) - 1))
+        self._maturities = np.array(maturities)
+        self._rates = np.array(rates)
+
+    def bootstrap_ois(self):
+        pass
+
