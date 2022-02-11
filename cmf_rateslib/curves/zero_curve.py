@@ -1,6 +1,6 @@
-
 from ..curves.base_curve import BaseZeroCurve
 import numpy as np
+
 
 class ZeroCurve(BaseZeroCurve):
 
