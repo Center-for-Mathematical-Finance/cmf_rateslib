@@ -1,10 +1,8 @@
-import datetime
 import numpy as np
-import scipy
 from scipy.interpolate import interp1d
 
 
-class BaseZeroCurve(object):
+class BaseZeroCurve:
 
     _maturities: np.ndarray
     _rates: np.ndarray
@@ -45,18 +43,18 @@ class BaseZeroCurve(object):
                                self.interp_type[self._interp_method[0]])
 
     def df(self, expiry):
-        return np.exp(- self.zero_rate(expiry) * expiry)
+        return np.exp(-self.zero_rate(expiry) * expiry)
 
     def zero_rate(self, expiry):
         return np.interp(expiry, self._maturities, self._rates)
     
     def fwd_rate(self, expiry: float, tenor: float, m: int = None):
-        forward_rate = - np.log((self.df(expiry) / self.df(expiry + tenor))) / tenor
+        forward_rate = -np.log((self.df(expiry) / self.df(expiry + tenor))) / tenor
         if m is None:
             return forward_rate
         return m * (np.exp(forward_rate / m) - 1)
 
-    def interpolate(self, expiry: List):
+    def interpolate(self, expiry: list):
 
         if self._interp_method[1] == 'R':
             return self.result(expiry)
@@ -76,7 +74,7 @@ class BaseZeroCurve(object):
             return interp_rates
 
     def create_from_existing_curve(self, interp_method):
-        return ZeroCurve(self._maturities, self._rates, interp_method)
+        return BaseZeroCurve(self._maturities, self._rates, interp_method)
 
     def bump(self, shift):
         return BaseZeroCurve(self._maturities, self._rates + shift)
